@@ -1,0 +1,2647 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title>MetRose</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+  <style>
+    :root {
+      --bg: #f4f6f8;
+      --panel: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --border: #d1d5db;
+      --dark: #111827;
+      --blue: #2563eb;
+      --blue-soft: #dbeafe;
+      --blue-border: #60a5fa;
+      --green: #047857;
+      --red: #b91c1c;
+      --yellow: #fde68a;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 16px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: auto minmax(180px, 260px) auto 1fr;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .clock-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 36px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: #f9fafb;
+      color: #111827;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 22px;
+      white-space: nowrap;
+    }
+
+    main {
+      max-width: 1500px;
+      margin: auto;
+      padding: 14px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: 0 3px 16px rgba(0,0,0,0.07);
+      margin-bottom: 14px;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: minmax(210px, 1fr) minmax(300px, 2.3fr) 120px minmax(210px, 260px) 142px;
+      gap: 10px;
+      align-items: end;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: #374151;
+      margin-bottom: 5px;
+    }
+
+    select, input, button {
+      width: 100%;
+      font: inherit;
+      border-radius: 9px;
+      border: 1px solid var(--border);
+      padding: 9px 10px;
+      background: white;
+      min-height: 40px;
+    }
+
+    button {
+      border: 0;
+      color: white;
+      background: var(--dark);
+      cursor: pointer;
+      white-space: nowrap;
+      font-weight: 700;
+    }
+
+    button:hover { filter: brightness(1.08); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .blue { background: var(--blue); }
+    .gray { background: #4b5563; }
+    .red { background: #991b1b; }
+
+    .status {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .ok { color: var(--green); }
+    .err { color: var(--red); }
+
+    .description {
+      border: 1px solid var(--border);
+      background: #f9fafb;
+      padding: 9px 10px;
+      border-radius: 9px;
+      font-size: 13px;
+      line-height: 1.3;
+      min-height: 40px;
+    }
+
+
+    .meta {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 10px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 9px;
+      border-radius: 999px;
+      background: #e5e7eb;
+      color: #374151;
+      font-weight: 700;
+    }
+
+    .pill.blue-pill {
+      background: var(--blue-soft);
+      border: 1px solid var(--blue-border);
+      color: #1d4ed8;
+    }
+
+    .table-wrap {
+      height: calc(100vh - 285px);
+      min-height: 420px;
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: white;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: max-content;
+      min-width: 100%;
+      font-size: 13px;
+    }
+
+    th, td {
+      padding: 8px 10px;
+      border-bottom: 1px solid #e5e7eb;
+      border-right: 1px solid #f3f4f6;
+      text-align: left;
+      white-space: nowrap;
+      vertical-align: top;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: #f9fafb;
+      cursor: pointer;
+      user-select: none;
+      font-weight: 800;
+    }
+
+    th:hover {
+      background: #eef2ff;
+      color: #1d4ed8;
+    }
+
+    th.selected-col {
+      background: var(--blue);
+      color: white;
+      box-shadow: inset 0 -3px 0 #1e40af;
+    }
+
+    td.selected-col {
+      background: var(--blue-soft);
+      border-left: 1px solid var(--blue-border);
+      border-right: 1px solid var(--blue-border);
+    }
+
+    mark {
+      background: var(--yellow);
+      padding: 0 2px;
+      border-radius: 3px;
+    }
+
+    .empty {
+      padding: 18px;
+      color: var(--muted);
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 22px;
+      background: rgba(17, 24, 39, 0.62);
+      backdrop-filter: blur(2px);
+    }
+
+    .modal.active { display: flex; }
+
+    .modal-window {
+      width: min(1320px, 98vw);
+      height: min(780px, 94vh);
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.35);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .modal-head {
+      min-height: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      background: #f9fafb;
+    }
+
+    .modal-title {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .modal-title strong {
+      font-size: 16px;
+      color: var(--text);
+    }
+
+    .map-layer-select {
+      width: auto;
+      min-width: 150px;
+      min-height: 34px;
+      padding: 6px 8px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: white;
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    .modal-close {
+      width: 38px;
+      height: 38px;
+      border-radius: 999px;
+      border: 0;
+      background: #111827;
+      color: white;
+      font-size: 24px;
+      line-height: 1;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+    }
+
+    .modal-close:hover { background: var(--red); }
+
+    #map {
+      flex: 1;
+      min-height: 420px;
+      width: 100%;
+    }
+
+    .modal-message {
+      padding: 24px;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .leaflet-container {
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    .stop-marker {
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      background: white;
+      border: 3px solid #111827;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.45);
+    }
+
+    .finish-marker {
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      border: 3px solid #111827;
+      background: repeating-conic-gradient(
+        #111827 0deg 90deg,
+        white 90deg 180deg,
+        #111827 180deg 270deg,
+        white 270deg 360deg
+      );
+      background-size: 12px 12px;
+      box-shadow: 0 1px 7px rgba(0,0,0,0.48);
+    }
+
+    .bus-marker {
+      position: relative;
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      background: white;
+      border: 3px solid #111827;
+      box-shadow: 0 1px 7px rgba(0,0,0,0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .bus-marker svg {
+      width: 18px;
+      height: 18px;
+      display: block;
+    }
+
+    .bus-count {
+      position: absolute;
+      right: -8px;
+      top: -8px;
+      min-width: 18px;
+      height: 18px;
+      padding: 0 4px;
+      border-radius: 999px;
+      background: #111827;
+      color: white;
+      border: 2px solid white;
+      font-size: 11px;
+      font-weight: 800;
+      line-height: 14px;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .bus-marker.transit {
+      animation: busBlink 0.85s ease-in-out infinite;
+    }
+
+    @keyframes busBlink {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.35; transform: scale(0.92); }
+    }
+
+    .stop-label {
+      background: rgba(255,255,255,0.92);
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      padding: 2px 5px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #111827;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+    }
+
+    .direction-arrow {
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      transform-origin: 50% 50%;
+    }
+
+    .direction-arrow svg {
+      width: 38px;
+      height: 38px;
+      filter: drop-shadow(0 1px 5px rgba(0,0,0,0.4));
+      overflow: visible;
+    }
+
+    .schematic-view {
+      flex: 1;
+      min-height: 420px;
+      width: 100%;
+      overflow: hidden;
+      background: #fbfcfd;
+      padding: 8px 20px 16px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+    }
+
+    .schematic-board {
+      position: relative;
+      width: 100%;
+      height: 322px;
+      margin: 0 auto;
+      border-radius: 18px;
+      background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+      box-shadow: inset 0 0 0 1px rgba(209, 213, 219, 0.85);
+      overflow: hidden;
+    }
+
+    .schematic-line {
+      position: absolute;
+      left: 60px;
+      right: 60px;
+      top: 228px;
+      height: 8px;
+      border-radius: 999px;
+      box-shadow: inset 0 0 0 1px rgba(17,24,39,0.08);
+    }
+
+    .schematic-stop-wrap {
+      position: absolute;
+      top: 0;
+      transform: translateX(-50%);
+    }
+
+    .schematic-stop-label {
+      position: absolute;
+      left: -4px;
+      top: 160px;
+      width: 96px;
+      transform: rotate(-58deg);
+      transform-origin: left bottom;
+      font-size: 12px;
+      line-height: 1.02;
+      color: #111827;
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+      letter-spacing: -0.01em;
+    }
+
+    .schematic-stop-label.terminal {
+      font-weight: 800;
+    }
+
+    .schematic-stop-label.selected {
+      color: #0f172a;
+    }
+
+    .schematic-node-host {
+      position: absolute;
+      left: 0;
+      top: 232px;
+      transform: translate(-50%, -50%);
+      cursor: pointer;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .schematic-node-host.selected {
+      filter: brightness(0.94);
+    }
+
+    .schematic-node-host .stop-marker {
+      width: 12px;
+      height: 12px;
+      border-width: 3px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.16);
+    }
+
+    .schematic-node-host.start .direction-arrow {
+      width: 34px;
+      height: 34px;
+    }
+
+    .schematic-node-host.start .direction-arrow svg {
+      width: 32px;
+      height: 32px;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.18));
+    }
+
+    .schematic-node-host.end .finish-marker {
+      width: 26px;
+      height: 26px;
+      border-width: 3px;
+      background-size: 10px 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+    }
+
+    .schematic-bus-wrap {
+      position: absolute;
+      left: 0;
+      top: 268px;
+      transform: translateX(-50%);
+      cursor: pointer;
+      z-index: 3;
+    }
+
+    .schematic-bus-wrap .bus-marker {
+      width: 28px;
+      height: 28px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+    }
+
+    .schematic-bus-wrap .bus-marker svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .schematic-popup {
+      position: absolute;
+      left: 50%;
+      bottom: 100%;
+      transform: translate(-50%, -12px);
+      min-width: 220px;
+      max-width: 320px;
+      background: rgba(255,255,255,0.99);
+      border: 1px solid #d1d5db;
+      border-radius: 12px;
+      padding: 10px 12px;
+      box-shadow: 0 10px 28px rgba(0,0,0,0.18);
+      font-size: 13px;
+      line-height: 1.35;
+      color: #111827;
+      z-index: 6;
+    }
+
+    .schematic-popup::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 100%;
+      width: 14px;
+      height: 14px;
+      background: white;
+      border-right: 1px solid #d1d5db;
+      border-bottom: 1px solid #d1d5db;
+      transform: translate(-50%, -7px) rotate(45deg);
+    }
+
+    .schematic-empty {
+      color: #6b7280;
+      padding: 24px;
+      text-align: center;
+    }
+
+
+
+
+
+    .view-mode-select {
+      min-width: 112px;
+    }
+
+    @media (max-width: 760px) {
+      .modal {
+        padding: 0;
+        align-items: stretch;
+        justify-content: stretch;
+      }
+
+      .modal-window {
+        width: 100vw;
+        height: 100dvh;
+        max-height: 100dvh;
+        border-radius: 0;
+      }
+
+      .modal-head {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-auto-rows: auto;
+        gap: 8px;
+        padding: 8px;
+        align-items: center;
+      }
+
+      .modal-title {
+        grid-column: 1 / -1;
+        font-size: 12px;
+        gap: 6px;
+        min-width: 0;
+      }
+
+      .modal-title strong {
+        font-size: 15px;
+      }
+
+      .modal-title span {
+        display: inline;
+      }
+
+      #routeShapeSelect {
+        grid-column: 1 / 2;
+        min-width: 0;
+        width: 100%;
+        font-size: 12px;
+      }
+
+      #viewModeSelect {
+        grid-column: 2 / 3;
+        width: 106px;
+        min-width: 106px;
+        font-size: 12px;
+      }
+
+      .modal-close {
+        position: absolute;
+        right: 8px;
+        top: 8px;
+        width: 34px;
+        height: 34px;
+        font-size: 22px;
+      }
+
+      #map {
+        min-height: 0;
+        height: auto;
+      }
+
+      .schematic-view {
+        min-height: 0;
+        padding: 8px;
+        overflow: auto;
+        align-items: flex-start;
+        justify-content: flex-start;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .schematic-board {
+        min-width: 880px;
+        height: 320px;
+      }
+
+      .schematic-stop-label {
+        font-size: 10.5px !important;
+      }
+
+      .leaflet-control-zoom {
+        transform: scale(0.92);
+        transform-origin: top left;
+      }
+
+      .leaflet-popup-content {
+        font-size: 13px;
+      }
+    }
+
+    @media (max-width: 420px) {
+      .modal-title {
+        padding-right: 42px;
+      }
+
+      .modal-title span:nth-of-type(n+3) {
+        display: none;
+      }
+
+      #routeShapeSelect {
+        font-size: 11.5px;
+      }
+
+      #viewModeSelect {
+        width: 94px;
+        min-width: 94px;
+      }
+
+      .schematic-board {
+        min-width: 820px;
+      }
+    }
+
+    @media (max-width: 1250px) {
+      .controls { grid-template-columns: 1fr 1fr 120px 1fr 142px; }
+    }
+
+    @media (max-width: 900px) {
+      .controls { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (max-width: 650px) {
+      header { padding: 10px; }
+      main { padding: 10px; }
+      .topbar { grid-template-columns: 1fr; align-items: stretch; }
+      .controls { grid-template-columns: 1fr; }
+      .table-wrap { height: calc(100vh - 420px); min-height: 300px; }
+      .modal { padding: 0; }
+      .modal-window { width: 100vw; height: 100dvh; border-radius: 0; }
+    }
+  </style>
+</head>
+
+<body>
+<header>
+  <div class="topbar">
+    <h1>MetRose</h1>
+    <button class="blue" id="btnLoad" onclick="loadGtfs()">Charger GTFS</button>
+    <span id="currentTimeClock" class="clock-pill">--:--:--</span>
+    <span id="status" class="status"></span>
+    <input id="zipInput" type="file" accept=".zip" style="display:none" onchange="loadLocalZip(this.files[0])">
+  </div>
+</header>
+
+<main>
+  <section class="panel">
+    <div class="controls">
+      <div>
+        <label>Table</label>
+        <select id="tableSelect" onchange="resetSelectedColumn(); renderTable()" disabled>
+          <option>Charge un GTFS</option>
+        </select>
+      </div>
+
+      <div>
+        <label>Filtre texte</label>
+        <input id="filterText" placeholder="Clique une colonne puis filtre..." oninput="renderTable()" disabled>
+      </div>
+
+      <div>
+        <label>Lignes max</label>
+        <input id="maxRows" type="number" min="10" max="5000" value="300" oninput="renderTable()" disabled>
+      </div>
+
+      <div>
+        <label>Tracer une ligne</label>
+        <input id="routeShortNameInput" placeholder="route_short_name : T1, B, L4..." disabled>
+      </div>
+
+      <button class="blue" id="btnTraceRoute" onclick="traceRouteFromInput()" disabled>Tracer ligne</button>
+    </div>
+
+    <div class="meta">
+      <span id="tableInfo">—</span>
+      <span id="selectedColumnInfo" class="pill">Filtre : toutes colonnes</span>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div id="tableOutput" class="table-wrap">
+      <div class="empty">Charge le GTFS.</div>
+    </div>
+  </section>
+</main>
+
+<div id="mapModal" class="modal" onclick="closeMapModal(event)">
+  <div class="modal-window" onclick="event.stopPropagation()">
+    <div class="modal-head">
+      <div id="mapTitle" class="modal-title"><strong>Tracé</strong></div>
+      <select id="routeShapeSelect" class="map-layer-select" onchange="changeRouteShape()" style="display:none"></select>
+      <select id="viewModeSelect" class="map-layer-select view-mode-select" onchange="changeViewMode()">
+        <option value="map">Carte</option>
+        <option value="schematic">Schéma</option>
+      </select>
+<button class="modal-close" onclick="closeMapModal()" title="Fermer">×</button>
+    </div>
+    <div id="map"></div>
+    <div id="schematicView" class="schematic-view" style="display:none"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+const CATALOG_URL = "https://data.toulouse-metropole.fr/api/explore/v2.1/catalog/datasets/tisseo-gtfs/records?limit=20";
+
+const EXCLUDED_TABLES = new Set([
+  "agency.txt",
+  "fare_attributes.txt",
+  "fare_rules.txt",
+  "transfers.txt",
+  "calendar.txt"
+]);
+
+const TABLE_DESCRIPTIONS = {
+  "routes.txt": "Lignes commerciales : métro, tram, bus, couleurs et identifiants.",
+  "stops.txt": "Arrêts et stations : noms, IDs, coordonnées GPS et stations parentes.",
+  "trips.txt": "Courses planifiées : trajet, direction, terminus et tracé associé.",
+  "stop_times.txt": "Horaires théoriques de chaque course à chaque arrêt.",
+  "shapes.txt": "Points GPS dessinant les tracés des lignes/courses.",
+  "calendar_dates.txt": "Exceptions : jours ajoutés ou supprimés.",
+  "feed_info.txt": "Métadonnées du flux GTFS.",
+  "frequencies.txt": "Services définis par fréquence de passage.",
+  "pathways.txt": "Cheminements internes dans les stations.",
+  "levels.txt": "Niveaux/étages des stations.",
+  "translations.txt": "Traductions de libellés.",
+  "attributions.txt": "Crédits et responsabilités des données."
+};
+
+const TABLE_LABELS = {
+  "routes.txt": "routes",
+  "stops.txt": "stops",
+  "trips.txt": "trips",
+  "stop_times.txt": "stop_times",
+  "shapes.txt": "shapes",
+  "calendar_dates.txt": "calendar_dates",
+  "feed_info.txt": "feed_info",
+  "frequencies.txt": "frequencies",
+  "pathways.txt": "pathways",
+  "levels.txt": "levels",
+  "translations.txt": "translations",
+  "attributions.txt": "attributions"
+};
+
+const HIDDEN_COLUMNS = {
+  "routes.txt": new Set(["agency_id", "route_text_color", "route_type"]),
+  "stops.txt": new Set(["stop_code", "location_type", "parent_station", "wheelchair_boarding", "wheelchair_accessible"]),
+  "stop_times.txt": new Set(["arrival_time", "shape_dist_traveled", "timepoint", "stop_headsign"]),
+  "shapes.txt": new Set(["shape_dist_traveled"])
+};
+
+function getVisibleColumns(tableName, rows) {
+  const columns = rows[0] ? Object.keys(rows[0]) : [];
+  const hidden = HIDDEN_COLUMNS[tableName] || new Set();
+
+  return columns.filter(col => {
+    const lower = String(col).toLowerCase();
+    if (hidden.has(col)) return false;
+    if (tableName === "stops.txt" && lower.includes("wheelchair")) return false;
+    return true;
+  });
+}
+
+function formatDisplayValue(tableName, column, value) {
+  if (tableName === "shapes.txt" && (column === "shape_pt_lat" || column === "shape_pt_lon")) {
+    const n = Number(value);
+    if (Number.isFinite(n)) return n.toFixed(5);
+  }
+  return value;
+}
+
+function normalizeRouteColor(color) {
+  const raw = String(color || "").trim();
+
+  if (/^[0-9a-fA-F]{6}$/.test(raw)) return "#" + raw;
+  if (/^#[0-9a-fA-F]{6}$/.test(raw)) return raw;
+
+  const rgbMatch = raw.match(/\(?\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)?/);
+  if (rgbMatch) {
+    const r = Math.max(0, Math.min(255, Number(rgbMatch[1])));
+    const g = Math.max(0, Math.min(255, Number(rgbMatch[2])));
+    const b = Math.max(0, Math.min(255, Number(rgbMatch[3])));
+    return "#" + [r, g, b].map(v => v.toString(16).padStart(2, "0")).join("");
+  }
+
+  return "#2563eb";
+}
+
+let gtfsTables = {};
+let currentRows = [];
+let currentColumns = [];
+let selectedColumn = null;
+
+let map = null;
+let baseLayer = null;
+let mapLayers = [];
+let mapMarkers = [];
+let mapStopMarkers = [];
+let mapBusMarkers = [];
+let mapBusMarkersByKey = new Map();
+let popupRefreshTick = 0;
+let currentViewMode = "map";
+let schematicSelection = null;
+let currentRouteTrace = null;
+
+function setStatus(msg, type = "") {
+  const el = document.getElementById("status");
+  el.textContent = msg;
+  el.className = "status " + type;
+}
+
+async function loadGtfs() {
+  const btn = document.getElementById("btnLoad");
+  btn.disabled = true;
+  setStatus("Chargement du catalogue GTFS...", "");
+
+  try {
+    if (typeof JSZip === "undefined") throw new Error("JSZip non chargé");
+
+    const catalogResp = await fetch(CATALOG_URL, { cache: "no-store" });
+    if (!catalogResp.ok) throw new Error("Catalogue HTTP " + catalogResp.status);
+
+    const catalog = await catalogResp.json();
+    const fileInfo = findGtfsZipInCatalog(catalog);
+    if (!fileInfo?.url) throw new Error("URL du ZIP GTFS introuvable");
+
+    setStatus("Téléchargement " + (fileInfo.filename || "GTFS") + "...", "");
+
+    const zipResp = await fetch(fileInfo.url, { cache: "no-store" });
+    if (!zipResp.ok) throw new Error("ZIP HTTP " + zipResp.status);
+
+    const blob = await zipResp.blob();
+    await parseZip(blob, fileInfo.filename || "tisseo_gtfs.zip");
+
+  } catch (err) {
+    console.error(err);
+    setStatus("Auto impossible : sélectionne le ZIP GTFS", "err");
+    document.getElementById("zipInput").click();
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function findGtfsZipInCatalog(catalog) {
+  const files = (catalog?.results || [])
+    .map(r => r?.file)
+    .filter(f => f?.url && String(f.filename || "").toLowerCase().endsWith(".zip"));
+
+  // Le catalogue Tisséo contient aussi un ZIP Netex. On force le vrai ZIP GTFS.
+  return files.find(f => {
+    const name = String(f.filename || "").toLowerCase();
+    return name.includes("gtfs") && !name.includes("netex");
+  }) || files.find(f => String(f.filename || "").toLowerCase().includes("gtfs")) || files[0] || null;
+}
+
+async function loadLocalZip(file) {
+  if (!file) return;
+  try {
+    await parseZip(file, file.name);
+  } catch (err) {
+    console.error(err);
+    setStatus("Erreur ZIP : " + err.message, "err");
+  }
+}
+
+async function parseZip(blob, filename) {
+  setStatus("Lecture ZIP...", "");
+
+  const zip = await JSZip.loadAsync(blob);
+  gtfsTables = {};
+  selectedColumn = null;
+
+  const txtFiles = Object.keys(zip.files)
+    .filter(name => name.toLowerCase().endsWith(".txt"))
+    .sort();
+
+  if (!txtFiles.length) throw new Error("Aucun fichier .txt trouvé");
+
+  for (const name of txtFiles) {
+    const shortName = name.split("/").pop();
+    const text = await zip.files[name].async("text");
+    gtfsTables[shortName] = parseCsv(text);
+  }
+
+  populateTables();
+  enableControls();
+  renderTable();
+  setStatus(filename + " chargé", "ok");
+}
+
+function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let cell = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    const next = text[i + 1];
+
+    if (ch === '"') {
+      if (inQuotes && next === '"') {
+        cell += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (ch === "," && !inQuotes) {
+      row.push(cell);
+      cell = "";
+    } else if ((ch === "\n" || ch === "\r") && !inQuotes) {
+      if (ch === "\r" && next === "\n") i++;
+      row.push(cell);
+      if (row.some(v => v !== "")) rows.push(row);
+      row = [];
+      cell = "";
+    } else {
+      cell += ch;
+    }
+  }
+
+  if (cell.length || row.length) {
+    row.push(cell);
+    if (row.some(v => v !== "")) rows.push(row);
+  }
+
+  const headers = rows.shift() || [];
+  return rows.map(r => {
+    const obj = {};
+    headers.forEach((h, i) => obj[h] = r[i] ?? "");
+    return obj;
+  });
+}
+
+function populateTables() {
+  const select = document.getElementById("tableSelect");
+  const tables = Object.keys(gtfsTables).filter(t => !EXCLUDED_TABLES.has(t)).sort();
+
+  const preferred = [
+    "routes.txt",
+    "stops.txt",
+    "trips.txt",
+    "stop_times.txt",
+    "shapes.txt",
+    "calendar_dates.txt"
+  ];
+
+  const ordered = [
+    ...preferred.filter(t => tables.includes(t)),
+    ...tables.filter(t => !preferred.includes(t))
+  ];
+
+  select.innerHTML = ordered
+    .map(t => `<option value="${esc(t)}">${esc(TABLE_LABELS[t] || t.replace(".txt", ""))}</option>`)
+    .join("");
+}
+
+function enableControls() {
+  [
+    "tableSelect", "filterText", "maxRows",
+    "routeShortNameInput", "btnTraceRoute"
+  ].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = false;
+  });
+}
+
+function resetSelectedColumn() {
+  selectedColumn = null;
+  document.getElementById("filterText").value = "";
+}
+
+function clearSelectedColumn() {
+  selectedColumn = null;
+  renderTable();
+}
+
+function clearFilter() {
+  document.getElementById("filterText").value = "";
+  renderTable();
+}
+
+function setTableAndFilter(table, filter, column) {
+  if (!gtfsTables[table]) return;
+  document.getElementById("tableSelect").value = table;
+  document.getElementById("filterText").value = filter || "";
+  selectedColumn = column || null;
+  renderTable();
+}
+
+function selectColumn(col) {
+  selectedColumn = selectedColumn === col ? null : col;
+  renderTable();
+}
+
+function renderTable() {
+  const tableName = document.getElementById("tableSelect").value;
+  const filter = document.getElementById("filterText").value.trim().toLowerCase();
+  const maxRows = Number(document.getElementById("maxRows").value || 300);
+
+  let rows = gtfsTables[tableName] || [];
+  const allColumns = rows[0] ? Object.keys(rows[0]) : [];
+  const columns = getVisibleColumns(tableName, rows);
+
+  if (selectedColumn && !allColumns.includes(selectedColumn)) selectedColumn = null;
+
+  if (filter) {
+    if (selectedColumn) {
+      rows = rows.filter(r => String(r[selectedColumn] ?? "").toLowerCase().includes(filter));
+    } else {
+      rows = rows.filter(r => Object.values(r).some(v => String(v).toLowerCase().includes(filter)));
+    }
+  }
+
+  const displayRows = rows.slice(0, maxRows);
+
+  currentRows = displayRows;
+  currentColumns = columns;
+
+  const tableDescription = document.getElementById("tableDescription");
+  if (tableDescription) {
+    tableDescription.textContent = TABLE_DESCRIPTIONS[tableName] || "Table GTFS complémentaire.";
+  }
+
+  document.getElementById("tableInfo").textContent =
+    `${tableName} · ${rows.length} résultat(s) · ${displayRows.length} affiché(s)`;
+
+  const pill = document.getElementById("selectedColumnInfo");
+  pill.className = selectedColumn ? "pill blue-pill" : "pill";
+  pill.textContent = selectedColumn ? `Filtre : ${selectedColumn}` : "Filtre : toutes colonnes";
+
+  document.getElementById("tableOutput").innerHTML =
+    renderHtmlTable(displayRows, columns, filter, selectedColumn, tableName);
+}
+
+function renderHtmlTable(rows, columns, filter, activeColumn, tableName) {
+  if (!rows.length) return '<div class="empty">Aucune ligne.</div>';
+
+  const head = columns.map(c => {
+    const cls = c === activeColumn ? "selected-col" : "";
+    return `<th class="${cls}" onclick="selectColumn('${jsEsc(c)}')">${esc(c)}</th>`;
+  }).join("");
+
+  const body = rows.map(row => `
+    <tr>${columns.map(c => {
+      const isActive = c === activeColumn;
+      const raw = row[c] ?? "";
+      const displayRaw = formatDisplayValue(tableName, c, raw);
+      const value = isActive && filter ? highlight(displayRaw, filter) : esc(displayRaw);
+
+      let click = "";
+      if (c === "route_short_name") {
+        click = ` onclick="document.getElementById('routeShortNameInput').value='${jsEsc(raw)}'" title="Utiliser ce route_short_name"`;
+      }
+
+      return `<td class="${isActive ? "selected-col" : ""}"${click}>${value}</td>`;
+    }).join("")}</tr>
+  `).join("");
+
+  return `<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+}
+
+function getRouteColorByRouteIds(routeIds) {
+  const routes = gtfsTables["routes.txt"] || [];
+  const ids = new Set(routeIds.map(id => String(id).trim()));
+  const route = routes.find(r => ids.has(String(r.route_id || "").trim()));
+  return normalizeRouteColor(route?.route_color);
+}
+
+function traceRouteFromInput() {
+  traceRoute(document.getElementById("routeShortNameInput").value.trim());
+}
+
+
+function pad2(n) {
+  return String(n).padStart(2, "0");
+}
+
+function formatClock(date = new Date()) {
+  return `${pad2(date.getHours())}:${pad2(date.getMinutes())}:${pad2(date.getSeconds())}`;
+}
+
+function updateCurrentTimeClock() {
+  const el = document.getElementById("currentTimeClock");
+  if (el) el.textContent = formatClock();
+}
+
+function getCurrentTimeSeconds() {
+  const now = new Date();
+  return now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+}
+
+function parseGtfsTimeToSeconds(value) {
+  const m = String(value || "").trim().match(/^(\d{1,2}):([0-5]\d):([0-5]\d)$/);
+  if (!m) return NaN;
+  return Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3]);
+}
+
+function secondsUntilDeparture(departureSeconds, nowSeconds) {
+  if (!Number.isFinite(departureSeconds)) return Infinity;
+  let delta = departureSeconds - nowSeconds;
+  if (delta < 0) delta += 24 * 3600;
+  return delta;
+}
+
+function getTodayInfo() {
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = pad2(now.getMonth() + 1);
+  const dd = pad2(now.getDate());
+  const weekdays = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+
+  return {
+    key: `${yyyy}${mm}${dd}`,
+    weekday: weekdays[now.getDay()]
+  };
+}
+
+function getTodayActiveServiceIds() {
+  const calendar = gtfsTables["calendar.txt"] || [];
+  const calendarDates = gtfsTables["calendar_dates.txt"] || [];
+
+  if (!calendar.length && !calendarDates.length) return null;
+
+  const { key, weekday } = getTodayInfo();
+  const active = new Set();
+
+  calendar.forEach(row => {
+    const serviceId = String(row.service_id || "").trim();
+    if (!serviceId) return;
+
+    const start = String(row.start_date || "").trim();
+    const end = String(row.end_date || "").trim();
+    const dayEnabled = String(row[weekday] || "").trim() === "1";
+
+    if (dayEnabled && (!start || key >= start) && (!end || key <= end)) {
+      active.add(serviceId);
+    }
+  });
+
+  calendarDates.forEach(row => {
+    const serviceId = String(row.service_id || "").trim();
+    const date = String(row.date || "").trim();
+    const exception = String(row.exception_type || "").trim();
+
+    if (!serviceId || date !== key) return;
+
+    if (exception === "1") active.add(serviceId);
+    if (exception === "2") active.delete(serviceId);
+  });
+
+  return active;
+}
+
+function getStopTimeSummariesForTrips(tripIds) {
+  const stopTimes = gtfsTables["stop_times.txt"] || [];
+  const wanted = new Set(tripIds.map(id => String(id).trim()));
+  const summaries = new Map();
+
+  stopTimes.forEach(st => {
+    const tripId = String(st.trip_id || "").trim();
+    if (!wanted.has(tripId)) return;
+
+    const seq = Number(st.stop_sequence || 0);
+    const departureTime = st.departure_time || st.arrival_time || "";
+    const departureSeconds = parseGtfsTimeToSeconds(departureTime);
+    const stopId = String(st.stop_id || st.stop_point || "").trim();
+
+    if (!stopId || !Number.isFinite(seq)) return;
+
+    let summary = summaries.get(tripId);
+    if (!summary) {
+      summary = { first: null, last: null };
+      summaries.set(tripId, summary);
+    }
+
+    const point = { stop_id: stopId, sequence: seq, departure_time: departureTime, departure_seconds: departureSeconds };
+
+    if (!summary.first || seq < summary.first.sequence) summary.first = point;
+    if (!summary.last || seq > summary.last.sequence) summary.last = point;
+  });
+
+  return summaries;
+}
+
+function getStopNameById(stopId) {
+  const stops = gtfsTables["stops.txt"] || [];
+  const stop = findStopById(String(stopId || "").trim(), stops);
+  return stop?.stop_name || stopId || "";
+}
+
+function normalizeTripTimePoints(points) {
+  const normalized = [];
+  let dayOffset = 0;
+  let previousAbs = null;
+
+  points.forEach(point => {
+    const baseSeconds = Number.isFinite(point.departure_seconds)
+      ? point.departure_seconds
+      : point.arrival_seconds;
+
+    if (!Number.isFinite(baseSeconds)) return;
+
+    if (previousAbs !== null) {
+      while (baseSeconds + dayOffset < previousAbs) {
+        dayOffset += 24 * 3600;
+      }
+    }
+
+    const absSeconds = baseSeconds + dayOffset;
+    normalized.push({
+      ...point,
+      time_seconds_abs: absSeconds
+    });
+
+    previousAbs = absSeconds;
+  });
+
+  return normalized;
+}
+
+function buildActiveBusSegments(matchingTrips) {
+  const stopTimes = gtfsTables["stop_times.txt"] || [];
+  const stops = gtfsTables["stops.txt"] || [];
+  const activeServices = getTodayActiveServiceIds();
+
+  let usableTrips = matchingTrips || [];
+
+  if (activeServices && activeServices.size) {
+    usableTrips = usableTrips.filter(t =>
+      activeServices.has(String(t.service_id || "").trim())
+    );
+  }
+
+  if (!usableTrips.length) usableTrips = matchingTrips || [];
+
+  const tripMeta = new Map();
+  usableTrips.forEach(t => {
+    const tripId = String(t.trip_id || "").trim();
+    if (tripId) tripMeta.set(tripId, t);
+  });
+
+  if (!tripMeta.size || !stopTimes.length || !stops.length) return [];
+
+  const byTrip = new Map();
+
+  stopTimes.forEach(st => {
+    const tripId = String(st.trip_id || "").trim();
+    if (!tripMeta.has(tripId)) return;
+
+    const seq = Number(st.stop_sequence || 0);
+    const stopId = String(st.stop_id || st.stop_point || "").trim();
+    const departureTime = st.departure_time || st.arrival_time || "";
+    const arrivalTime = st.arrival_time || st.departure_time || "";
+    const departureSeconds = parseGtfsTimeToSeconds(departureTime);
+    const arrivalSeconds = parseGtfsTimeToSeconds(arrivalTime);
+
+    if (!stopId || !Number.isFinite(seq)) return;
+
+    if (!byTrip.has(tripId)) byTrip.set(tripId, []);
+    byTrip.get(tripId).push({
+      trip_id: tripId,
+      stop_id: stopId,
+      sequence: seq,
+      departure_time: departureTime,
+      arrival_time: arrivalTime,
+      departure_seconds: departureSeconds,
+      arrival_seconds: arrivalSeconds
+    });
+  });
+
+  const states = [];
+
+  byTrip.forEach((points, tripId) => {
+    points.sort((a, b) => a.sequence - b.sequence);
+    const normalizedPoints = normalizeTripTimePoints(points);
+    const meta = tripMeta.get(tripId) || {};
+
+    const enrichedPoints = normalizedPoints
+      .map(point => {
+        const stop = findStopById(point.stop_id, stops);
+        if (!stop) return null;
+
+        const lat = Number(stop.stop_lat);
+        const lon = Number(stop.stop_lon);
+        if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+
+        return {
+          ...point,
+          stop_name: stop.stop_name || point.stop_id,
+          lat,
+          lon,
+          display_time: point.departure_time || point.arrival_time || ""
+        };
+      })
+      .filter(Boolean);
+
+    enrichedPoints.forEach((point, index) => {
+      if (!Number.isFinite(point.time_seconds_abs)) return;
+
+      let previous = null;
+      for (let j = index - 1; j >= 0; j--) {
+        if (enrichedPoints[j].time_seconds_abs < point.time_seconds_abs) {
+          previous = enrichedPoints[j];
+          break;
+        }
+      }
+
+      const fixedStart = point.time_seconds_abs - 30;
+      const fixedEnd = point.time_seconds_abs;
+
+      if (Number.isFinite(fixedStart) && fixedEnd > fixedStart) {
+        states.push({
+          trip_id: tripId,
+          route_id: meta.route_id || "",
+          shape_id: meta.shape_id || "",
+          service_id: meta.service_id || "",
+          marker_state: "fixed",
+          stop_id: point.stop_id,
+          stop_sequence: point.sequence,
+          stop_name: point.stop_name,
+          lat: point.lat,
+          lon: point.lon,
+          start_time: point.display_time,
+          target_time: point.display_time,
+          previous_stop_name: previous?.stop_name || "",
+          previous_time: previous?.display_time || "",
+          start_seconds: fixedStart,
+          end_seconds: fixedEnd
+        });
+      }
+
+      if (previous) {
+        const transitStart = previous.time_seconds_abs;
+        const transitEnd = point.time_seconds_abs - 30;
+
+        if (Number.isFinite(transitStart) && Number.isFinite(transitEnd) && transitEnd > transitStart) {
+          states.push({
+            trip_id: tripId,
+            route_id: meta.route_id || "",
+            shape_id: meta.shape_id || "",
+            service_id: meta.service_id || "",
+            marker_state: "transit",
+            stop_id: point.stop_id,
+            stop_sequence: point.sequence,
+            stop_name: point.stop_name,
+            lat: point.lat,
+            lon: point.lon,
+            start_time: previous.display_time,
+            target_time: point.display_time,
+            previous_stop_name: previous.stop_name,
+            previous_time: previous.display_time,
+            start_seconds: transitStart,
+            end_seconds: transitEnd
+          });
+        }
+      }
+    });
+  });
+
+  return states;
+}
+
+function isNowInsideGtfsInterval(startSeconds, endSeconds, nowSeconds) {
+  if (!Number.isFinite(startSeconds) || !Number.isFinite(endSeconds)) return false;
+
+  const day = 24 * 3600;
+  return [nowSeconds - day, nowSeconds, nowSeconds + day].some(current =>
+    current >= startSeconds && current < endSeconds
+  );
+}
+
+function getActiveBusGroups(segments, shapeId = null) {
+  const nowSeconds = getCurrentTimeSeconds();
+  const groups = new Map();
+  const wantedShapeId = shapeId ? String(shapeId).trim() : "";
+
+  (segments || []).forEach(segment => {
+    if (wantedShapeId && String(segment.shape_id || "").trim() !== wantedShapeId) return;
+    if (!isNowInsideGtfsInterval(segment.start_seconds, segment.end_seconds, nowSeconds)) return;
+
+    const key = segment.stop_id || `${segment.lat},${segment.lon}`;
+    let group = groups.get(key);
+
+    if (!group) {
+      group = {
+        key,
+        stop_id: segment.stop_id,
+        stop_name: segment.stop_name,
+        lat: segment.lat,
+        lon: segment.lon,
+        trips: []
+      };
+      groups.set(key, group);
+    }
+
+    group.trips.push(segment);
+  });
+
+  const result = Array.from(groups.values()).map(group => {
+    const hasTransit = group.trips.some(t => t.marker_state === "transit");
+    const hasFixed = group.trips.some(t => t.marker_state === "fixed");
+    return {
+      ...group,
+      marker_state: hasTransit && !hasFixed ? "transit" : (hasTransit ? "mixed" : "fixed")
+    };
+  });
+
+  return result.sort((a, b) =>
+    String(a.stop_name || "").localeCompare(String(b.stop_name || ""), "fr")
+  );
+}
+
+function clearBusMarkers() {
+  if (!map) {
+    mapBusMarkers = [];
+    mapBusMarkersByKey = new Map();
+    return;
+  }
+
+  mapBusMarkersByKey.forEach(marker => {
+    if (marker && map.hasLayer(marker)) map.removeLayer(marker);
+  });
+
+  mapBusMarkers = [];
+  mapBusMarkersByKey = new Map();
+}
+
+function buildBusPopupHtml(group) {
+  const tripLines = group.trips.slice(0, 8).map(trip => {
+    if (trip.marker_state === "transit") {
+      return `trip ${esc(trip.trip_id)} · transit depuis ${esc(trip.previous_stop_name || "—")} ${esc(trip.previous_time || "")} · vers départ ${esc(trip.target_time || "—")}`;
+    }
+
+    return `trip ${esc(trip.trip_id)} · à l'arrêt · départ ${esc(trip.target_time || "—")}`;
+  }).join("<br>");
+
+  const extra = group.trips.length > 8 ? `<br>+ ${group.trips.length - 8} autre(s)` : "";
+  const transitCount = group.trips.filter(t => t.marker_state === "transit").length;
+  const fixedCount = group.trips.length - transitCount;
+  const stateLabel = transitCount && fixedCount
+    ? `${fixedCount} fixe · ${transitCount} transit`
+    : (transitCount ? `${transitCount} transit` : `${fixedCount} fixe`);
+
+  return `
+    <strong>🚌 ${esc(group.stop_name || group.stop_id)}</strong><br>
+    ${group.trips.length} trip(s) actif(s) · ${esc(stateLabel)}<br>
+    ${tripLines}${extra}
+  `;
+}
+
+function getBusMarkerHtml(count, state = "fixed") {
+  const countHtml = count > 1 ? `<span class="bus-count">${esc(count)}</span>` : "";
+  const stateClass = state === "transit" || state === "mixed" ? "transit" : "fixed";
+
+  return `
+    <div class="bus-marker ${stateClass}">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <rect x="5" y="3.5" width="14" height="15" rx="3" fill="#111827" />
+        <rect x="7" y="6" width="10" height="5" rx="1" fill="white" />
+        <circle cx="8.5" cy="16" r="1.8" fill="white" />
+        <circle cx="15.5" cy="16" r="1.8" fill="white" />
+        <path d="M8 20h8" stroke="#111827" stroke-width="2" stroke-linecap="round" />
+      </svg>
+      ${countHtml}
+    </div>
+  `;
+}
+
+function createBusIcon(count, state = "fixed") {
+  return L.divIcon({
+    className: "",
+    html: getBusMarkerHtml(count, state),
+    iconSize: [28, 28],
+    iconAnchor: [14, 14]
+  });
+}
+
+function refreshActiveBusMarkers(boundsCollector = null) {
+  if (!map || !currentRouteTrace?.busSegments) return [];
+
+  const groups = getActiveBusGroups(currentRouteTrace.busSegments, currentRouteTrace.activeShapeId);
+  const info = document.getElementById("activeBusInfo");
+
+  if (info) {
+    const total = groups.reduce((sum, group) => sum + group.trips.length, 0);
+    const transit = groups.reduce((sum, group) => sum + group.trips.filter(t => t.marker_state === "transit").length, 0);
+    const fixed = total - transit;
+
+    info.textContent = total
+      ? `${total} bus actif(s) · ${fixed} fixe · ${transit} transit · maj ${formatClock()}`
+      : `aucun bus actif sur ce trajet · maj ${formatClock()}`;
+  }
+
+  const activeKeys = new Set();
+
+  groups.forEach(group => {
+    const key = String(group.key || group.stop_id || `${group.lat},${group.lon}`);
+    activeKeys.add(key);
+
+    const latlng = [group.lat, group.lon];
+    if (boundsCollector) boundsCollector.push(latlng);
+
+    let marker = mapBusMarkersByKey.get(key);
+    const popupHtml = buildBusPopupHtml(group);
+
+    if (marker) {
+      marker.setLatLng(latlng);
+      marker.setIcon(createBusIcon(group.trips.length, group.marker_state));
+      marker.setPopupContent(popupHtml);
+      marker.options.title = group.stop_name;
+    } else {
+      marker = L.marker(latlng, {
+        icon: createBusIcon(group.trips.length, group.marker_state),
+        title: group.stop_name,
+        zIndexOffset: 1800
+      }).bindPopup(popupHtml, { autoClose: false, closeOnClick: false });
+
+      marker.addTo(map);
+      mapBusMarkersByKey.set(key, marker);
+    }
+
+    marker.bringToFront && marker.bringToFront();
+  });
+
+  mapBusMarkersByKey.forEach((marker, key) => {
+    if (!activeKeys.has(key)) {
+      if (marker && map.hasLayer(marker)) map.removeLayer(marker);
+      mapBusMarkersByKey.delete(key);
+    }
+  });
+
+  mapBusMarkers = Array.from(mapBusMarkersByKey.values());
+  return groups;
+}
+
+function buildBestRouteTracks(matchingTrips) {
+  const nowSeconds = getCurrentTimeSeconds();
+  const activeServices = getTodayActiveServiceIds();
+
+  let usableTrips = matchingTrips;
+
+  if (activeServices && activeServices.size) {
+    usableTrips = matchingTrips.filter(t =>
+      activeServices.has(String(t.service_id || "").trim())
+    );
+  }
+
+  if (!usableTrips.length) usableTrips = matchingTrips;
+
+  const tripIds = usableTrips
+    .map(t => String(t.trip_id || "").trim())
+    .filter(Boolean);
+
+  const summaries = getStopTimeSummariesForTrips(tripIds);
+  const groups = new Map();
+
+  usableTrips.forEach(trip => {
+    const tripId = String(trip.trip_id || "").trim();
+    const shapeId = String(trip.shape_id || "").trim();
+    const summary = summaries.get(tripId);
+
+    if (!tripId || !shapeId || !summary?.first || !summary?.last) return;
+
+    const departureSeconds = summary.first.departure_seconds;
+    const delta = secondsUntilDeparture(departureSeconds, nowSeconds);
+    const groupKey = [
+      shapeId,
+      summary.first.stop_id,
+      summary.last.stop_id
+    ].join("|");
+
+    const current = groups.get(groupKey);
+    if (!current || delta < current.delta) {
+      groups.set(groupKey, {
+        id: shapeId,
+        trip_id: tripId,
+        service_id: trip.service_id || "",
+        departure_time: summary.first.departure_time || "",
+        departure_seconds: departureSeconds,
+        delta,
+        first_stop_name: getStopNameById(summary.first.stop_id),
+        last_stop_name: getStopNameById(summary.last.stop_id)
+      });
+    }
+  });
+
+  return Array.from(groups.values())
+    .sort((a, b) => a.delta - b.delta)
+    .map(track => ({
+      ...track,
+      points: getShapePoints(track.id),
+      stops: getStopsForTripId(track.trip_id)
+    }))
+    .filter(track => track.points.length >= 2);
+}
+
+
+function traceRoute(routeShortName) {
+  routeShortName = String(routeShortName || "").trim();
+
+  if (!routeShortName) {
+    showMapMessage("Renseigne un route_short_name, par exemple T1, B ou L4.");
+    return;
+  }
+
+  const routes = gtfsTables["routes.txt"] || [];
+  const trips = gtfsTables["trips.txt"] || [];
+  const shapes = gtfsTables["shapes.txt"] || [];
+  const stopTimes = gtfsTables["stop_times.txt"] || [];
+
+  if (!routes.length || !trips.length || !shapes.length || !stopTimes.length) {
+    showMapMessage("Il faut charger routes.txt, trips.txt, stop_times.txt et shapes.txt.");
+    return;
+  }
+
+  const match = routeShortName.toLowerCase();
+
+  const matchingRoutes = routes.filter(r =>
+    String(r.route_short_name || "").trim().toLowerCase() === match
+  );
+
+  if (!matchingRoutes.length) {
+    showMapMessage(`Aucune ligne trouvée pour route_short_name = ${esc(routeShortName)}.`);
+    return;
+  }
+
+  const routeIds = [...new Set(matchingRoutes.map(r => String(r.route_id || "").trim()).filter(Boolean))];
+  const matchingTrips = trips.filter(t => routeIds.includes(String(t.route_id || "").trim()));
+
+  if (!matchingTrips.length) {
+    showMapMessage(`Aucun trip trouvé pour ${esc(routeShortName)}.`);
+    return;
+  }
+
+  document.getElementById("routeShortNameInput").value = routeShortName;
+
+  if (routeIds[0]) {
+    document.getElementById("tableSelect").value = "trips.txt";
+    document.getElementById("filterText").value = routeIds[0];
+    selectedColumn = "route_id";
+    renderTable();
+  }
+
+  const tracks = buildBestRouteTracks(matchingTrips);
+
+  if (!tracks.length) {
+    showMapMessage("Aucun trip horaire exploitable trouvé pour cette ligne.");
+    return;
+  }
+
+  const routeColor = getRouteColorByRouteIds(routeIds);
+
+  currentRouteTrace = {
+    routeShortName,
+    routeIds,
+    routeColor,
+    tracks,
+    matchingTrips,
+    busSegments: buildActiveBusSegments(matchingTrips)
+  };
+
+  openMap();
+  resetMap();
+  initMap();
+
+  setupRouteShapeSelector(tracks);
+  renderRouteShape(0);
+  changeViewMode();
+}
+
+function getTrackStopLabel(track) {
+  const stops = track?.stops || [];
+
+  if (stops.length >= 2) {
+    const pickup = stops[0]?.stop_name || stops[0]?.stop_id || "Départ";
+    const dropoff = stops[stops.length - 1]?.stop_name || stops[stops.length - 1]?.stop_id || "Arrivée";
+    return `${pickup} → ${dropoff}`;
+  }
+
+  if (stops.length === 1) {
+    const onlyStop = stops[0]?.stop_name || stops[0]?.stop_id || "Arrêt unique";
+    return `${onlyStop} → ${onlyStop}`;
+  }
+
+  return "Terminus non trouvé";
+}
+
+function setupRouteShapeSelector(tracks) {
+  const selector = document.getElementById("routeShapeSelect");
+  if (!selector) return;
+
+  selector.innerHTML = tracks.map((track, index) => {
+    const label = getTrackStopLabel(track);
+    const time = track.departure_time ? `${track.departure_time} · ` : "";
+    const prefix = index === 0 ? "Prochain · " : "";
+    return `<option value="${index}">${esc(prefix)}${esc(time)}${esc(label)}</option>`;
+  }).join("");
+
+  selector.style.display = tracks.length > 1 ? "" : "none";
+  selector.value = "0";
+}
+
+function getCurrentTrack() {
+  if (!currentRouteTrace?.tracks?.length) return null;
+  const idx = Number.isFinite(currentRouteTrace.activeTrackIndex)
+    ? currentRouteTrace.activeTrackIndex
+    : 0;
+  return currentRouteTrace.tracks[idx] || currentRouteTrace.tracks[0] || null;
+}
+
+function toggleSchematicStopPopup(index) {
+  const key = `stop:${index}`;
+  schematicSelection = schematicSelection === key ? null : key;
+  renderSchematicCurrent();
+}
+
+function toggleSchematicBusPopup(stopKey) {
+  const key = `bus:${stopKey}`;
+  schematicSelection = schematicSelection === key ? null : key;
+  renderSchematicCurrent();
+}
+
+function renderSchematicCurrent() {
+  if (currentViewMode !== "schematic") return;
+  const track = getCurrentTrack();
+  if (track) renderSchematicTrack(track);
+}
+
+function changeViewMode() {
+  currentViewMode = document.getElementById("viewModeSelect")?.value || "map";
+  const mapEl = document.getElementById("map");
+  const schematicEl = document.getElementById("schematicView");
+
+  if (currentViewMode === "schematic") {
+    if (mapEl) mapEl.style.display = "none";
+    if (schematicEl) schematicEl.style.display = "flex";
+    renderSchematicCurrent();
+  } else {
+    if (mapEl) mapEl.style.display = "block";
+    if (schematicEl) schematicEl.style.display = "none";
+    setTimeout(() => map && map.invalidateSize(), 80);
+  }
+}
+
+function renderSchematicTrack(track) {
+  const container = document.getElementById("schematicView");
+  if (!container) return;
+
+  const stops = track?.stops || [];
+  if (!stops.length) {
+    container.innerHTML = '<div class="schematic-empty">Aucun arrêt disponible pour cette vue schématique.</div>';
+    return;
+  }
+
+  const groups = getActiveBusGroups(currentRouteTrace?.busSegments || [], currentRouteTrace?.activeShapeId);
+  const groupsByStop = new Map();
+  groups.forEach(group => {
+    const key = compactStopId(group.stop_id);
+    if (key) groupsByStop.set(key, group);
+  });
+
+  const count = stops.length;
+  const containerWidth = Math.max(860, (container.clientWidth || 1120) - 28);
+  const boardWidth = Math.min(containerWidth, 1220);
+  const leftPad = 60;
+  const rightPad = 60;
+  const usableWidth = boardWidth - leftPad - rightPad;
+  const routeColor = currentRouteTrace?.routeColor || "#16a34a";
+  const labelFontSize = count >= 18 ? 10.6 : (count >= 14 ? 11.2 : 12);
+  const labelWidth = count >= 18 ? 80 : (count >= 14 ? 88 : 96);
+  const labelTop = count >= 18 ? 168 : (count >= 14 ? 164 : 160);
+  const arrowMarkup = `
+    <div class="direction-arrow" style="transform: rotate(0deg);">
+      <svg viewBox="0 0 30 30" aria-hidden="true" focusable="false">
+        <path d="M25 15 L16 6 V11 H6 V19 H16 V24 Z"
+              fill="white"
+              stroke="#111827"
+              stroke-width="2.8"
+              stroke-linejoin="round"
+              stroke-linecap="round" />
+      </svg>
+    </div>
+  `;
+
+  const stopHtml = stops.map((stop, index) => {
+    const x = leftPad + (count === 1 ? usableWidth / 2 : usableWidth * index / (count - 1));
+    const isStart = index === 0;
+    const isEnd = index === count - 1;
+    const isTerminal = isStart || isEnd;
+    const stopSelected = schematicSelection === `stop:${index}`;
+    const stopPopup = stopSelected ? `<div class="schematic-popup">${buildStopPopupHtml(stop, index)}</div>` : "";
+    const stopKey = compactStopId(stop.stop_id);
+    const group = groupsByStop.get(stopKey);
+    const busSelected = group && schematicSelection === `bus:${String(group.key || stopKey)}`;
+    const busPopup = busSelected ? `<div class="schematic-popup">${buildBusPopupHtml(group)}</div>` : "";
+    const busHtml = group ? `
+      <div class="schematic-bus-wrap" onclick="toggleSchematicBusPopup('${jsEsc(String(group.key || stopKey))}')">
+        ${busPopup}
+        ${getBusMarkerHtml(group.trips.length, group.marker_state)}
+      </div>
+    ` : "";
+
+    let nodeInner = '<div class="stop-marker"></div>';
+    let nodeClass = 'schematic-node-host';
+    if (isStart) {
+      nodeInner = arrowMarkup;
+      nodeClass += ' start';
+    } else if (isEnd) {
+      nodeInner = '<div class="finish-marker"></div>';
+      nodeClass += ' end';
+    }
+    if (stopSelected) nodeClass += ' selected';
+
+    return `
+      <div class="schematic-stop-wrap" style="left:${x}px;">
+        <div class="schematic-stop-label ${isTerminal ? "terminal" : ""} ${stopSelected ? "selected" : ""}"
+             style="font-size:${labelFontSize}px; width:${labelWidth}px; top:${labelTop}px;"
+             onclick="toggleSchematicStopPopup(${index})">${esc(stop.stop_name || stop.stop_id || `Arrêt ${index + 1}`)}</div>
+        <div class="${nodeClass}" onclick="toggleSchematicStopPopup(${index})">${stopPopup}${nodeInner}</div>
+        ${busHtml}
+      </div>
+    `;
+  }).join("");
+
+  container.innerHTML = `
+    <div class="schematic-board" style="width:${boardWidth}px; max-width:100%;">
+      <div class="schematic-line" style="background:${esc(routeColor)};"></div>
+      ${stopHtml}
+    </div>
+  `;
+}
+
+function changeRouteShape() {
+  const selector = document.getElementById("routeShapeSelect");
+  const index = Number(selector?.value || 0);
+  renderRouteShape(index);
+}
+
+function renderRouteShape(index) {
+  if (!currentRouteTrace || !map) return;
+
+  const track = currentRouteTrace.tracks[index] || currentRouteTrace.tracks[0];
+  if (!track) return;
+
+  currentRouteTrace.activeTrackIndex = index;
+  clearMapOverlays();
+
+  currentRouteTrace.activeShapeId = String(track.id || "").trim();
+  currentRouteTrace.stopDepartureIndex = buildStopDepartureIndexForShape(
+    currentRouteTrace.matchingTrips,
+    currentRouteTrace.activeShapeId
+  );
+
+  const routeColor = currentRouteTrace.routeColor;
+  const latlngs = track.points.map(p => [p.lat, p.lon]);
+  const all = [...latlngs];
+
+  document.getElementById("mapTitle").innerHTML = `
+    <strong>${esc(currentRouteTrace.routeShortName)}</strong>
+    <span>${esc(getTrackStopLabel(track))}</span>
+    <span>départ : ${esc(track.departure_time || "—")}</span>
+    <span>${track.stops.length} arrêt(s)</span>
+    <span id="activeBusInfo">bus actifs trajet : —</span>
+    <span><span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:${routeColor};border:1px solid #111827;vertical-align:-2px;"></span> ${esc(routeColor)}</span>
+  `;
+
+  const layer = L.polyline(latlngs, {
+    color: routeColor,
+    weight: 6,
+    opacity: 1
+  });
+
+  layer.addTo(map);
+  mapLayers.push(layer);
+
+  addStopMarkers(track.stops, all, track.points);
+  refreshActiveBusMarkers(all);
+
+  if (all.length) {
+    map.fitBounds(L.latLngBounds(all), { padding: [35, 35] });
+  }
+
+  if (currentViewMode === "schematic") {
+    renderSchematicTrack(track);
+  }
+
+  setTimeout(() => map && map.invalidateSize(), 80);
+}
+
+function clearMapOverlays() {
+  if (!map) return;
+
+  mapLayers.forEach(layer => {
+    if (layer && map.hasLayer(layer)) map.removeLayer(layer);
+  });
+
+  mapMarkers.forEach(marker => {
+    if (marker && map.hasLayer(marker)) map.removeLayer(marker);
+  });
+
+  clearBusMarkers();
+
+  mapLayers = [];
+  mapMarkers = [];
+  mapStopMarkers = [];
+}
+
+function getStopsForTripId(tripId) {
+  const stopTimes = gtfsTables["stop_times.txt"] || [];
+  const stops = gtfsTables["stops.txt"] || [];
+
+  if (!tripId || !stopTimes.length || !stops.length) {
+    return [];
+  }
+
+  const tripStops = stopTimes
+    .filter(st => String(st.trip_id || "").trim() === String(tripId).trim())
+    .sort((a, b) => Number(a.stop_sequence || 0) - Number(b.stop_sequence || 0));
+
+  const result = [];
+
+  for (const st of tripStops) {
+    const stopId = String(st.stop_id || st.stop_point || "").trim();
+    const stop = findStopById(stopId, stops);
+
+    if (!stop) continue;
+
+    const lat = Number(stop.stop_lat);
+    const lon = Number(stop.stop_lon);
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+
+    result.push({
+      trip_id: tripId,
+      stop_id: stopId,
+      stop_sequence: Number(st.stop_sequence || 0),
+      arrival_time: st.arrival_time || "",
+      departure_time: st.departure_time || "",
+      stop_name: stop.stop_name || stopId,
+      lat,
+      lon
+    });
+  }
+
+  return result;
+}
+
+function getStopsForFirstTrip(routeId) {
+  const trips = gtfsTables["trips.txt"] || [];
+  const stopTimes = gtfsTables["stop_times.txt"] || [];
+  const stops = gtfsTables["stops.txt"] || [];
+
+  if (!routeId || !trips.length || !stopTimes.length || !stops.length) {
+    return [];
+  }
+
+  const routeTrips = trips.filter(t => String(t.route_id || "").trim() === String(routeId).trim());
+
+  if (!routeTrips.length) {
+    return [];
+  }
+
+  // Premier trip_id associé au route_id.
+  const firstTripId = String(routeTrips[0].trip_id || "").trim();
+
+  if (!firstTripId) {
+    return [];
+  }
+
+  const tripStops = stopTimes
+    .filter(st => String(st.trip_id || "").trim() === firstTripId)
+    .sort((a, b) => Number(a.stop_sequence || 0) - Number(b.stop_sequence || 0));
+
+  const result = [];
+
+  for (const st of tripStops) {
+    const stopId = String(st.stop_id || st.stop_point || "").trim();
+    const stop = findStopById(stopId, stops);
+
+    if (!stop) continue;
+
+    const lat = Number(stop.stop_lat);
+    const lon = Number(stop.stop_lon);
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+
+    result.push({
+      trip_id: firstTripId,
+      stop_id: stopId,
+      stop_sequence: Number(st.stop_sequence || 0),
+      arrival_time: st.arrival_time || "",
+      departure_time: st.departure_time || "",
+      stop_name: stop.stop_name || stopId,
+      lat,
+      lon
+    });
+  }
+
+  return result;
+}
+
+function findStopById(stopId, stops) {
+  if (!stopId) return null;
+
+  let stop = stops.find(s => String(s.stop_id || "").trim() === stopId);
+  if (stop) return stop;
+
+  const compact = stopId.replace(/^stop_point:/, "").replace(/^stop_area:/, "");
+
+  stop = stops.find(s =>
+    String(s.stop_id || "").replace(/^stop_point:/, "").replace(/^stop_area:/, "") === compact
+  );
+
+  if (stop) return stop;
+
+  const child = stops.find(s => String(s.stop_id || "").trim() === stopId);
+  if (child && child.parent_station) {
+    return stops.find(s => String(s.stop_id || "").trim() === String(child.parent_station).trim()) || child;
+  }
+
+  return null;
+}
+
+function createDirectionArrowIcon(angle) {
+  return L.divIcon({
+    className: "",
+    html: `
+      <div class="direction-arrow" style="transform: rotate(${angle}deg);">
+        <svg viewBox="0 0 30 30" aria-hidden="true" focusable="false">
+          <path d="M25 15 L16 6 V11 H6 V19 H16 V24 Z"
+                fill="white"
+                stroke="#111827"
+                stroke-width="2.8"
+                stroke-linejoin="round"
+                stroke-linecap="round" />
+        </svg>
+      </div>
+    `,
+    iconSize: [40, 40],
+    iconAnchor: [20, 20]
+  });
+}
+
+function getForwardAngleFromPath(pathPoints, anchorPoint, fallbackPoint) {
+  const pts = (Array.isArray(pathPoints) ? pathPoints : [])
+    .filter(p => Number.isFinite(p?.lat) && Number.isFinite(p?.lon));
+
+  if (anchorPoint && pts.length >= 2) {
+    let bestIdx = 0;
+    let bestDist = Infinity;
+
+    pts.forEach((p, i) => {
+      const dx = (p.lon - anchorPoint.lon) * Math.cos((anchorPoint.lat || 0) * Math.PI / 180);
+      const dy = p.lat - anchorPoint.lat;
+      const d2 = dx * dx + dy * dy;
+      if (d2 < bestDist) {
+        bestDist = d2;
+        bestIdx = i;
+      }
+    });
+
+    let nextIdx = bestIdx + 1;
+    while (nextIdx < pts.length) {
+      const cur = pts[bestIdx];
+      const nxt = pts[nextIdx];
+      if (Math.abs(cur.lat - nxt.lat) > 1e-12 || Math.abs(cur.lon - nxt.lon) > 1e-12) {
+        return getSegmentAngleDegrees(cur, nxt);
+      }
+      nextIdx++;
+    }
+
+    let prevIdx = bestIdx - 1;
+    while (prevIdx >= 0) {
+      const cur = pts[bestIdx];
+      const prv = pts[prevIdx];
+      if (Math.abs(cur.lat - prv.lat) > 1e-12 || Math.abs(cur.lon - prv.lon) > 1e-12) {
+        return getSegmentAngleDegrees(prv, cur);
+      }
+      prevIdx--;
+    }
+  }
+
+  if (anchorPoint && fallbackPoint) {
+    return getSegmentAngleDegrees(anchorPoint, fallbackPoint);
+  }
+
+  if (pts.length >= 2) {
+    return getSegmentAngleDegrees(pts[0], pts[1]);
+  }
+
+  return 0;
+}
+
+function addDirectionArrow(points) {
+  if (!map || !Array.isArray(points) || points.length < 2) return;
+
+  const first = points[0];
+  const second = points[1];
+
+  if (!Number.isFinite(first.lat) || !Number.isFinite(first.lon) ||
+      !Number.isFinite(second.lat) || !Number.isFinite(second.lon)) {
+    return;
+  }
+
+  const midLat = (first.lat + second.lat) / 2;
+  const midLon = (first.lon + second.lon) / 2;
+  const angle = getSegmentAngleDegrees(first, second);
+
+  const marker = L.marker([midLat, midLon], {
+    icon: createDirectionArrowIcon(angle),
+    interactive: false,
+    keyboard: false,
+    zIndexOffset: 1000
+  });
+
+  marker.addTo(map);
+  mapMarkers.push(marker);
+}
+
+function getSegmentAngleDegrees(first, second) {
+  const avgLat = ((first.lat + second.lat) / 2) * Math.PI / 180;
+  const dx = (second.lon - first.lon) * Math.cos(avgLat);
+  const dy = second.lat - first.lat;
+
+  if (Math.abs(dx) < 1e-12 && Math.abs(dy) < 1e-12) return 0;
+
+  return Math.atan2(-dy, dx) * 180 / Math.PI;
+}
+
+
+function buildStopDepartureIndexForShape(matchingTrips, shapeId) {
+  const stopTimes = gtfsTables["stop_times.txt"] || [];
+  const wantedShapeId = String(shapeId || "").trim();
+  const activeServices = getTodayActiveServiceIds();
+
+  let usableTrips = (matchingTrips || []).filter(t =>
+    !wantedShapeId || String(t.shape_id || "").trim() === wantedShapeId
+  );
+
+  if (activeServices && activeServices.size) {
+    usableTrips = usableTrips.filter(t =>
+      activeServices.has(String(t.service_id || "").trim())
+    );
+  }
+
+  const tripIds = new Set(
+    usableTrips
+      .map(t => String(t.trip_id || "").trim())
+      .filter(Boolean)
+  );
+
+  const byStop = new Map();
+  if (!tripIds.size || !stopTimes.length) return byStop;
+
+  stopTimes.forEach(st => {
+    const tripId = String(st.trip_id || "").trim();
+    if (!tripIds.has(tripId)) return;
+
+    const stopId = String(st.stop_id || st.stop_point || "").trim();
+    if (!stopId) return;
+
+    const departureTime = st.departure_time || st.arrival_time || "";
+    const departureSeconds = parseGtfsTimeToSeconds(departureTime);
+    if (!Number.isFinite(departureSeconds)) return;
+
+    const key = compactStopId(stopId);
+    if (!byStop.has(key)) byStop.set(key, []);
+
+    byStop.get(key).push({
+      trip_id: tripId,
+      stop_id: stopId,
+      departure_time: departureTime,
+      departure_seconds: departureSeconds,
+      stop_sequence: Number(st.stop_sequence || 0)
+    });
+  });
+
+  byStop.forEach(list => {
+    list.sort((a, b) =>
+      a.departure_seconds - b.departure_seconds ||
+      String(a.trip_id).localeCompare(String(b.trip_id))
+    );
+  });
+
+  return byStop;
+}
+
+function compactStopId(stopId) {
+  return String(stopId || "")
+    .trim()
+    .replace(/^stop_point:/, "")
+    .replace(/^stop_area:/, "");
+}
+
+function sameStopId(a, b) {
+  const aa = String(a || "").trim();
+  const bb = String(b || "").trim();
+  return aa === bb || compactStopId(aa) === compactStopId(bb);
+}
+
+function getUpcomingDeparturesForStop(stopId, limit = 8) {
+  const index = currentRouteTrace?.stopDepartureIndex;
+  if (!index) return [];
+
+  const key = compactStopId(stopId);
+  const list = index.get(key) || [];
+  if (!list.length) return [];
+
+  const nowSeconds = getCurrentTimeSeconds();
+  const result = [];
+
+  for (const item of list) {
+    const delta = item.departure_seconds - nowSeconds;
+
+    // Départ déjà passé : on ne le remonte pas comme un départ de demain.
+    if (delta < -30) continue;
+
+    result.push({
+      ...item,
+      delta
+    });
+
+    if (result.length >= limit) break;
+  }
+
+  return result;
+}
+
+function buildStopPopupHtml(stop, index) {
+  const upcoming = getUpcomingDeparturesForStop(stop.stop_id, 8);
+
+  const upcomingHtml = upcoming.length
+    ? upcoming.map((d, i) => {
+        const prefix = i === 0 ? "prochain" : "puis";
+        return `${esc(prefix)} : <strong>${esc(d.departure_time)}</strong>`;
+      }).join("<br>")
+    : "aucun prochain départ sur ce trajet";
+
+  return `
+    <strong>${esc(index + 1)}. ${esc(stop.stop_name)}</strong><br>
+    ${upcomingHtml}
+  `;
+}
+
+function refreshStopMarkerPopups() {
+  if (!map || !mapStopMarkers.length) return;
+
+  mapStopMarkers.forEach(item => {
+    if (!item?.marker || !item?.stop) return;
+    if (typeof item.marker.isPopupOpen === "function" && !item.marker.isPopupOpen()) return;
+    item.marker.setPopupContent(buildStopPopupHtml(item.stop, item.index));
+  });
+}
+
+function addStopMarkers(stops, boundsCollector, shapePoints = []) {
+  if (!map || !stops || !stops.length) return;
+
+  const defaultIcon = L.divIcon({
+    className: "",
+    html: '<div class="stop-marker"></div>',
+    iconSize: [12, 12],
+    iconAnchor: [6, 6]
+  });
+
+  const finishIcon = L.divIcon({
+    className: "",
+    html: '<div class="finish-marker"></div>',
+    iconSize: [32, 32],
+    iconAnchor: [16, 16]
+  });
+
+  const startAngle = getForwardAngleFromPath(shapePoints, stops[0], stops[1]);
+  const startIcon = createDirectionArrowIcon(startAngle);
+
+  stops.forEach((s, index) => {
+    const latlng = [s.lat, s.lon];
+    boundsCollector.push(latlng);
+
+    let icon = defaultIcon;
+    if (index === 0) {
+      icon = startIcon;
+    } else if (index === stops.length - 1) {
+      icon = finishIcon;
+    }
+
+    const marker = L.marker(latlng, {
+      icon,
+      title: s.stop_name,
+      zIndexOffset: index === 0 ? 1200 : (index === stops.length - 1 ? 1150 : 0)
+    }).bindPopup(buildStopPopupHtml(s, index), { autoClose: false, closeOnClick: false });
+
+    marker.on("popupopen", () => {
+      marker.setPopupContent(buildStopPopupHtml(s, index));
+    });
+
+    marker.addTo(map);
+    mapMarkers.push(marker);
+    mapStopMarkers.push({ marker, stop: s, index });
+
+    if (stops.length <= 45) {
+      marker.bindTooltip(`${index + 1}. ${s.stop_name}`, {
+        permanent: false,
+        direction: "top",
+        className: "stop-label",
+        offset: [0, -8]
+      });
+    }
+  });
+}
+
+function traceShapeFromInput() {
+  const shapeId = document.getElementById("shapeIdInput").value.trim();
+  if (!shapeId) {
+    showMapMessage("Renseigne un shape_id.");
+    return;
+  }
+  traceShape(shapeId);
+}
+
+function traceShape(shapeId) {
+  currentRouteTrace = null;
+  const routeShapeSelect = document.getElementById("routeShapeSelect");
+  if (routeShapeSelect) routeShapeSelect.style.display = "none";
+
+  const points = getShapePoints(shapeId);
+
+  if (!points.length) {
+    showMapMessage(`Aucune shape trouvée pour shape_id = ${esc(shapeId)}.`);
+    return;
+  }
+
+  openMap();
+  resetMap();
+
+  const maxDist = Math.max(...points.map(p => Number.isFinite(p.dist) ? p.dist : 0));
+
+  document.getElementById("mapTitle").innerHTML = `
+    <strong>shape_id ${esc(shapeId)}</strong>
+    <span>${points.length} points</span>
+    <span>${maxDist ? maxDist.toFixed(1) + " m" : "distance non renseignée"}</span>
+  `;
+
+  initMap();
+
+  const latlngs = points.map(p => [p.lat, p.lon]);
+
+  const line = L.polyline(latlngs, {
+    color: "#2563eb",
+    weight: 5,
+    opacity: 0.95
+  }).addTo(map);
+
+  mapLayers.push(line);
+
+  const start = L.circleMarker(latlngs[0], {
+    radius: 8, color: "white", weight: 2, fillColor: "#047857", fillOpacity: 1
+  }).bindPopup("Début").addTo(map);
+
+  const end = L.circleMarker(latlngs[latlngs.length - 1], {
+    radius: 8, color: "white", weight: 2, fillColor: "#b91c1c", fillOpacity: 1
+  }).bindPopup("Fin").addTo(map);
+
+  mapMarkers.push(start, end);
+
+  map.fitBounds(line.getBounds(), { padding: [35, 35] });
+  setTimeout(() => map && map.invalidateSize(), 80);
+}
+
+function getShapePoints(shapeId) {
+  const shapes = gtfsTables["shapes.txt"] || [];
+  return shapes
+    .filter(r => String(r.shape_id || "").trim() === String(shapeId).trim())
+    .map(r => ({
+      lat: Number(r.shape_pt_lat),
+      lon: Number(r.shape_pt_lon),
+      seq: Number(r.shape_pt_sequence),
+      dist: Number(r.shape_dist_traveled || 0)
+    }))
+    .filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lon))
+    .sort((a, b) => a.seq - b.seq);
+}
+
+function openMap() {
+  document.getElementById("mapModal").classList.add("active");
+  document.body.style.overflow = "hidden";
+  changeViewMode();
+}
+
+function closeMapModal(event) {
+  if (event && event.target !== event.currentTarget) return;
+  document.getElementById("mapModal").classList.remove("active");
+  document.body.style.overflow = "";
+  schematicSelection = null;
+  resetMap();
+  const schematicEl = document.getElementById("schematicView");
+  if (schematicEl) schematicEl.innerHTML = "";
+}
+
+function initMap() {
+  map = L.map("map", { preferCanvas: true, zoomControl: true });
+  addBaseLayer("carto");
+}
+
+function resetMap() {
+  if (map) {
+    map.remove();
+    map = null;
+  }
+  baseLayer = null;
+  mapLayers = [];
+  mapMarkers = [];
+  mapBusMarkers = [];
+  mapBusMarkersByKey = new Map();
+  document.getElementById("map").innerHTML = "";
+}
+
+function addBaseLayer(name) {
+  if (!map || typeof L === "undefined") return;
+
+  if (baseLayer) {
+    map.removeLayer(baseLayer);
+    baseLayer = null;
+  }
+
+  if (name === "none") return;
+
+  const layers = {
+    carto: {
+      url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+      options: { maxZoom: 20, subdomains: "abcd", attribution: "© OpenStreetMap © CARTO" }
+    },
+    esri: {
+      url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
+      options: { maxZoom: 20, attribution: "Tiles © Esri" }
+    },
+    sat: {
+      url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      options: { maxZoom: 20, attribution: "Imagery © Esri" }
+    }
+  };
+
+  const cfg = layers[name] || layers.carto;
+  baseLayer = L.tileLayer(cfg.url, cfg.options);
+
+  baseLayer.on("tileerror", () => {
+    if (name === "carto") {
+      document.getElementById("mapLayerSelect").value = "esri";
+      addBaseLayer("esri");
+    }
+  });
+
+  baseLayer.addTo(map);
+}
+
+function changeBaseLayer() {
+  addBaseLayer("carto");
+  mapLayers.forEach(l => l.bringToFront && l.bringToFront());
+  mapMarkers.forEach(m => m.bringToFront && m.bringToFront());
+  mapBusMarkers.forEach(m => m.bringToFront && m.bringToFront());
+}
+
+function showMapMessage(msg) {
+  currentRouteTrace = null;
+  const routeShapeSelect = document.getElementById("routeShapeSelect");
+  if (routeShapeSelect) routeShapeSelect.style.display = "none";
+
+  openMap();
+  resetMap();
+  currentViewMode = "map";
+  const viewSelect = document.getElementById("viewModeSelect");
+  if (viewSelect) viewSelect.value = "map";
+  changeViewMode();
+  document.getElementById("mapTitle").innerHTML = "<strong>Tracé</strong>";
+  document.getElementById("map").innerHTML = `<div class="modal-message">${msg}</div>`;
+}
+
+
+updateCurrentTimeClock();
+setInterval(() => {
+  updateCurrentTimeClock();
+
+  const modalOpen = document.getElementById("mapModal")?.classList.contains("active");
+
+  if (modalOpen && map && currentRouteTrace?.busSegments) {
+    refreshActiveBusMarkers();
+
+    popupRefreshTick = (popupRefreshTick + 1) % 10;
+    if (popupRefreshTick === 0) {
+      refreshStopMarkerPopups();
+    }
+
+    if (currentViewMode === "schematic") {
+      renderSchematicCurrent();
+    }
+  }
+}, 1000);
+
+
+
+window.addEventListener("resize", () => {
+  if (currentViewMode === "schematic") {
+    renderSchematicCurrent();
+  } else {
+    setTimeout(() => map && map.invalidateSize(), 80);
+  }
+});
+
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") closeMapModal();
+});
+
+function highlight(value, filter) {
+  const s = String(value);
+  const idx = s.toLowerCase().indexOf(filter.toLowerCase());
+  if (!filter || idx === -1) return esc(s);
+
+  return esc(s.slice(0, idx)) +
+    "<mark>" + esc(s.slice(idx, idx + filter.length)) + "</mark>" +
+    esc(s.slice(idx + filter.length));
+}
+
+function esc(v) {
+  return String(v)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function jsEsc(v) {
+  return String(v)
+    .replaceAll("\\", "\\\\")
+    .replaceAll("'", "\\'")
+    .replaceAll("\n", "\\n")
+    .replaceAll("\r", "\\r");
+}
+</script>
+</body>
+</html>
